@@ -1,8 +1,10 @@
 import os
+import json
 import argparse
 from dotenv import load_dotenv
 from openai import OpenAI
 from prompts import system_prompt
+from call_function import available_functions
 
 load_dotenv()
 api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -27,14 +29,25 @@ messages = [
 response = client.chat.completions.create(
     model="openrouter/free",
     messages=messages,
+    tools=available_functions,
 )
 
 prompt_tokens = response.usage.prompt_tokens
 Response_tokens = response.usage.completion_tokens
+message = response.choices[0].message
+
+#Pseudocode:
+#if message.tool_calls is set, iterate over it and print the name and arugments of each function call
+#If it's none (or empty), just print message.content
 
 def print_response():
-    print("Response:")
-    print(response.choices[0].message.content)
+    if message.tool_calls:
+        for tool_call in message.tool_calls:
+            function_args = json.loads(tool_call.function.arguments or "{}")
+            print(f"Calling function: {tool_call.function.name}({function_args})")
+        else:
+            print("Response:")
+            print(message.content)
 
 if (prompt_tokens or Response_tokens) == None:
     raise RuntimeError("Token usage information is missing in the response.")
