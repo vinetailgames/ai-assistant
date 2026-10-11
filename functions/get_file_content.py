@@ -1,6 +1,28 @@
 from config import CHAR_LIMIT
 import os
 
+schema_get_file_content = {
+    "type": "function",
+    "function": {
+        "name": "get_file_content",
+        "description": "Retrieves the content of a specified file relative to the working directory, with a character limit",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "directory": {
+                    "type": "string",
+                    "description": "Directory path to list files from, relative to the working directory (default is the working directory itself)",
+                },
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to the file within the specified directory",
+                }
+            },
+            "required": ["file_path"]
+        },
+    },
+}
+
 def get_file_content(working_directory: str, file_path: str) -> str:
     # Check if the file_path is outside the working_directory
     abs_working_directory = os.path.abspath(working_directory)

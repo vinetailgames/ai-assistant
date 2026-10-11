@@ -45,11 +45,11 @@ def print_response():
         for tool_call in message.tool_calls:
             function_args = json.loads(tool_call.function.arguments or "{}")
             print(f"Calling function: {tool_call.function.name}({function_args})")
-        else:
-            print("Response:")
-            print(message.content)
+    else:
+        print("Response:")
+        print(message.content)
 
-if (prompt_tokens or Response_tokens) == None:
+if (prompt_tokens == None) or (Response_tokens == None):
     raise RuntimeError("Token usage information is missing in the response.")
 elif args.verbose:
     print(f"User prompt: {args.user_prompt}")
