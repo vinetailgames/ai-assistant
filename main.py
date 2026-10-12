@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from prompts import system_prompt
 from call_function import available_functions
+from call_function import call_function
 
 load_dotenv()
 api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -36,15 +37,15 @@ prompt_tokens = response.usage.prompt_tokens
 Response_tokens = response.usage.completion_tokens
 message = response.choices[0].message
 
-#Pseudocode:
-#if message.tool_calls is set, iterate over it and print the name and arugments of each function call
-#If it's none (or empty), just print message.content
-
 def print_response():
     if message.tool_calls:
         for tool_call in message.tool_calls:
             function_args = json.loads(tool_call.function.arguments or "{}")
-            print(f"Calling function: {tool_call.function.name}({function_args})")
+            result_message = call_function(tool_call, verbose=args.verbose)
+            if len(result_message["content"]) == 0:
+                raise Exception("Function call failed or returned None.")
+            if args.verbose:
+                print(f"-> {result_message['content']}")
     else:
         print("Response:")
         print(message.content)
@@ -58,3 +59,4 @@ elif args.verbose:
     print_response()
 else:
     print_response()
+
