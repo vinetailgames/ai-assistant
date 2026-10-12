@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+import sys
 from dotenv import load_dotenv
 from openai import OpenAI
 from prompts import system_prompt
@@ -27,36 +28,50 @@ messages = [
     {"role": "user", "content": args.user_prompt},
 ]
 
-response = client.chat.completions.create(
-    model="openrouter/free",
-    messages=messages,
-    tools=available_functions,
-)
+def chat_func():
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=messages,
+        tools=available_functions,
+    )
 
-prompt_tokens = response.usage.prompt_tokens
-Response_tokens = response.usage.completion_tokens
-message = response.choices[0].message
+    prompt_tokens = response.usage.prompt_tokens
+    Response_tokens = response.usage.completion_tokens
+    message = response.choices[0].message
+    messages.append(message)
 
-def print_response():
-    if message.tool_calls:
-        for tool_call in message.tool_calls:
-            function_args = json.loads(tool_call.function.arguments or "{}")
-            result_message = call_function(tool_call, verbose=args.verbose)
-            if len(result_message["content"]) == 0:
-                raise Exception("Function call failed or returned None.")
-            if args.verbose:
-                print(f"-> {result_message['content']}")
+    def print_response():
+        if message.tool_calls:
+            for tool_call in message.tool_calls:
+                function_args = json.loads(tool_call.function.arguments or "{}")
+                result_message = call_function(tool_call, verbose=args.verbose)
+                messages.append(result_message)
+                if len(result_message["content"]) == 0:
+                    raise Exception("Function call failed or returned None.")
+                if args.verbose:
+                    print(f"-> {result_message['content']}")
+            return False
+        else:
+            print("Response:")
+            print(message.content)
+            return True
+
+    if (prompt_tokens == None) or (Response_tokens == None):
+        result = False
+        raise RuntimeError("Token usage information is missing in the response.")
+    elif args.verbose:
+        print(f"User prompt: {args.user_prompt}")
+        print(f"Prompt tokens: {prompt_tokens}")
+        print(f"Response tokens: {Response_tokens}")
+        result = print_response()
     else:
-        print("Response:")
-        print(message.content)
+        result = print_response()
+    return result
 
-if (prompt_tokens == None) or (Response_tokens == None):
-    raise RuntimeError("Token usage information is missing in the response.")
-elif args.verbose:
-    print(f"User prompt: {args.user_prompt}")
-    print(f"Prompt tokens: {prompt_tokens}")
-    print(f"Response tokens: {Response_tokens}")
-    print_response()
+for _ in range(20):
+    done = chat_func()
+    if done:
+        break
 else:
-    print_response()
-
+    print("Something went wrong...")
+    sys.exit(1)
